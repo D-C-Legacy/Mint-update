@@ -1,0 +1,15 @@
+// Admin-authored FAQ content. Not in the docs. Recommended (Phase 8 scoping, 13 Oct 2026) over a
+// hardcoded in-app FAQ so platform staff can edit help content without an app release — same
+// "give staff a tool instead of a code change" reasoning as the rest of the admin portal.
+model HelpArticle {
+  id          String   @id
+  category    String
+  title       String
+  body        String
+  sortOrder   Int      @default(0)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([isPublished, category, sortOrder])
+}

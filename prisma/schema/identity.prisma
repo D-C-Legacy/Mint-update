@@ -1,0 +1,124 @@
+model User {
+  id                  String     @id
+  email               String     @unique
+  phone               String?    @unique
+  // Nullable: an OAuth-only account (Google/Apple sign-in with no password ever set) has no
+  // hash. canAuthenticate() in user.entity.ts is unaffected — password sign-in checks this
+  // directly and simply never matches null, which is already correct behavior.
+  passwordHash        String?
+  displayName         String
+  avatarUrl           String?
+  role                UserRole   @default(BUYER)
+  status              UserStatus @default(ACTIVE)
+  emailVerifiedAt     DateTime?  @db.Timestamptz(6)
+  lastLoginAt         DateTime?  @db.Timestamptz(6)
+  // Apple App Store guideline 5.1.1(v) account-deletion feature (28 Oct 2026). Both null outside
+  // a pending request. `deletionScheduledAt` is the single source of truth for "is a deletion
+  // pending" — status stays ACTIVE for the whole grace window and only flips to DELETED when
+  // ExecuteAccountDeletionUseCase actually runs.
+  deletionRequestedAt DateTime?  @db.Timestamptz(6)
+  deletionScheduledAt DateTime?  @db.Timestamptz(6)
+  createdAt           DateTime   @default(now()) @db.Timestamptz(6)
+  updatedAt           DateTime   @updatedAt @db.Timestamptz(6)
+
+  sessions        Session[]
+  devices         Device[]
+  seller          Seller?
+  preferences     UserPreference?
+  addresses       UserAddress[]
+  paymentCustomer PaymentCustomer?
+  teamMemberships SellerTeamMember[]
+  oauthIdentities OAuthIdentity[]
+
+  @@index([status])
+}
+
+enum OAuthProvider {
+  GOOGLE
+  APPLE
+}
+
+// One row per linked provider identity. A user can have both a password and one or more of
+// these (account linking by verified email, see sign-in-with-provider.usecase.ts), or only these
+// and no password at all (pure OAuth sign-up).
+model OAuthIdentity {
+  id         String        @id
+  userId     String
+  provider   OAuthProvider
+  providerId String // Google/Apple "sub" claim
+  email      String? // email the provider gave us at link time — audit only, User.email is truth
+  createdAt  DateTime      @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerId])
+  @@index([userId])
+}
+
+model Session {
+  id               String    @id
+  userId           String
+  refreshTokenHash String    @unique
+  familyId         String
+  userAgent        String?
+  ipAddress        String?
+  expiresAt        DateTime  @db.Timestamptz(6)
+  revokedAt        DateTime? @db.Timestamptz(6)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, revokedAt])
+  @@index([familyId])
+}
+
+model Device {
+  id         String         @id
+  userId     String
+  pushToken  String         @unique
+  platform   DevicePlatform
+  lastSeenAt DateTime       @db.Timestamptz(6)
+  createdAt  DateTime       @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+// Per-user notification and privacy toggles. Not in the docs: added for app integration Phase 2 on
+// the user's instruction. One row per user, created on first write; absent row means defaults.
+model UserPreference {
+  userId               String   @id
+  notifyLive           Boolean  @default(true)
+  notifyBids           Boolean  @default(true)
+  notifyOrders         Boolean  @default(true)
+  notifyMessages       Boolean  @default(true)
+  privacyPublicProfile Boolean  @default(true)
+  privacyShowActivity  Boolean  @default(false)
+  privacyOnlineStatus  Boolean  @default(true)
+  updatedAt            DateTime @updatedAt @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// A buyer's saved shipping addresses. Not in the docs: added for app integration Phase 3 on the
+// user's instruction. Same seven fields as the per-order address (03-DATA-MODEL.md Order.shippingAddress).
+// At most one row per user has isDefault = true; the repository keeps that in one transaction.
+model UserAddress {
+  id          String   @id
+  userId      String
+  fullName    String
+  line1       String
+  line2       String?
+  city        String
+  region      String
+  postalCode  String
+  countryCode String
+  isDefault   Boolean  @default(false)
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}

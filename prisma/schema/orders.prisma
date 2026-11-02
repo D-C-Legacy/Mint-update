@@ -1,0 +1,48 @@
+model Order {
+  id          String      @id
+  saleId      String      @unique
+  buyerUserId String
+  sellerId    String
+  status      OrderStatus @default(PENDING_PAYMENT)
+  currency    String      @db.Char(3)
+
+  itemAmount       BigInt
+  shippingAmount   BigInt @default(0)
+  taxAmount        BigInt @default(0)
+  totalAmount      BigInt
+  commissionBps    Int // snapshot at creation
+  commissionAmount BigInt
+  sellerNetAmount  BigInt
+
+  shippingAddress     Json
+  carrier             String?
+  trackingNumber      String?
+  shippedAt           DateTime?                   @db.Timestamptz(6)
+  deliveredAt         DateTime?                   @db.Timestamptz(6)
+  deliveryConfirmedBy DeliveryConfirmationSource?
+  cancelledAt         DateTime?                   @db.Timestamptz(6)
+  cancelReason        String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  payment Payment?
+  events  OrderEvent[]
+
+  @@index([buyerUserId, createdAt])
+  @@index([sellerId, status])
+  @@index([status, shippedAt])
+}
+
+model OrderEvent {
+  id        String   @id
+  orderId   String
+  type      String // order.created, order.paid, order.shipped ...
+  payload   Json
+  actorId   String?
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, createdAt])
+}

@@ -1,0 +1,48 @@
+model Category {
+  id       String  @id
+  parentId String?
+  slug     String  @unique
+  name     String
+  position Int     @default(0)
+  isActive Boolean @default(true)
+
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children Category[] @relation("CategoryTree")
+  products Product[]
+
+  @@index([parentId, position])
+}
+
+model Product {
+  id          String           @id
+  sellerId    String
+  categoryId  String
+  title       String
+  description String?
+  condition   ProductCondition @default(USED)
+  status      ProductStatus    @default(DRAFT)
+  quantity    Int              @default(1)
+  reserved    Int              @default(0)
+  weightGrams Int?
+  createdAt   DateTime         @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime         @updatedAt @db.Timestamptz(6)
+
+  category Category       @relation(fields: [categoryId], references: [id])
+  images   ProductImage[]
+
+  @@index([sellerId, status])
+  @@index([categoryId, status])
+}
+
+model ProductImage {
+  id         String @id
+  productId  String
+  storageKey String
+  position   Int    @default(0)
+  width      Int?
+  height     Int?
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId, position])
+}

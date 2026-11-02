@@ -1,0 +1,20 @@
+// A user flagging a review or a message for admin attention. Not in the docs. One generic target
+// (REVIEW | MESSAGE) rather than two separate tables, so the admin moderation queue reads one
+// list. Deliberately standalone (no foreign key, no cross-module lookup at write time) so this
+// module never has to import reviews/messaging — the admin module enriches each row with a
+// preview by calling those modules' own services, avoiding a circular dependency.
+model Report {
+  id               String           @id
+  targetType       ReportTargetType
+  targetId         String
+  reporterUserId   String
+  reason           String
+  status           ReportStatus     @default(OPEN)
+  resolvedByUserId String?
+  resolvedAt       DateTime?        @db.Timestamptz(6)
+  resolutionNote   String?
+  createdAt        DateTime         @default(now()) @db.Timestamptz(6)
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+}

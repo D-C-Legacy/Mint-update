@@ -1,0 +1,16 @@
+node_modules
+dist
+coverage
+.env
+.env.*
+!.env.example
+*.log
+*.err
+*.tsbuildinfo
+.claude/
+.DS_Store
+*.pem
+*.p8
+
+# Generated per load-test run (seeded fixture ids + signed JWTs) — never committed.
+test/load/.output/

@@ -1,0 +1,24 @@
+import React, { createContext } from "react";
+import type { Product } from "./data";
+import type { Order } from "./types";
+import type { ScheduledShow } from "./types/show";
+import type { RouteName } from "./constants/routes";
+export type { Route } from "./hooks/useNavigation";
+export type AppContextType = {
+  navigate: (name: RouteName, id?: string, amount?: number) => void;
+  back: () => void;
+  toast: (text: string) => void;
+  saved: string[];
+  toggleSave: (id: string) => void;
+  following: string[];
+  toggleFollow: (id: string) => void;
+  inventory: Product[];
+  setInventory: React.Dispatch<React.SetStateAction<Product[]>>;
+  selectStream: (id: string) => void;
+  orders: Order[];
+  shows: ScheduledShow[];
+  scheduleShow: (show: Omit<ScheduledShow, "id">) => void;
+  addOrder: (productId: string, amount: number, shipping: number) => string;
+};
+export const AppContext = createContext<AppContextType | null>(null);
+export { useApp } from "./hooks/useApp";

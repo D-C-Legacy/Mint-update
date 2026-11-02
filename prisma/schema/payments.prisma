@@ -1,0 +1,47 @@
+model Payment {
+  id               String        @id
+  orderId          String        @unique
+  provider         String        @default("stripe")
+  providerIntentId String        @unique
+  providerChargeId String?
+  status           PaymentStatus @default(REQUIRES_PAYMENT)
+  amount           BigInt
+  currency         String        @db.Char(3)
+  providerFee      BigInt?
+  failureCode      String?
+  failureMessage   String?
+  capturedAt       DateTime?     @db.Timestamptz(6)
+  createdAt        DateTime      @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime      @updatedAt @db.Timestamptz(6)
+
+  order   Order    @relation(fields: [orderId], references: [id])
+  refunds Refund[]
+
+  @@index([status, createdAt])
+}
+
+model Refund {
+  id                String       @id
+  paymentId         String
+  providerRefundId  String       @unique
+  amount            BigInt
+  reason            String
+  status            RefundStatus @default(PENDING)
+  initiatedByUserId String?
+  createdAt         DateTime     @default(now()) @db.Timestamptz(6)
+
+  payment Payment @relation(fields: [paymentId], references: [id])
+
+  @@index([paymentId])
+}
+
+// Which Stripe customer belongs to which user (saved cards hang off the customer). Not in the docs:
+// added for app integration Phase 4 on the user's instruction. Cards themselves are not stored here,
+// only in Stripe; this table is just the id mapping.
+model PaymentCustomer {
+  userId             String   @id
+  providerCustomerId String   @unique
+  createdAt          DateTime @default(now()) @db.Timestamptz(6)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

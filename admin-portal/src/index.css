@@ -1,0 +1,24 @@
+/* Base/reset only — component styling stays inline using theme/*.ts tokens (no CSS module or
+   Tailwind layer chosen yet). #F0EFED/#111113 below mirror colors.desktop/colors.text. */
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', sans-serif;
+  background: #F0EFED;
+  color: #111113;
+}
+
+a {
+  color: inherit;
+}
+
+button {
+  font-family: inherit;
+}

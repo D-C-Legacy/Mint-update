@@ -1,0 +1,33 @@
+model ChatMessage {
+  id              String          @id
+  sessionId       String
+  userId          String
+  body            String          @db.VarChar(500)
+  type            ChatMessageType @default(USER)
+  isDeleted       Boolean         @default(false)
+  deletedByUserId String?
+  createdAt       DateTime        @default(now()) @db.Timestamptz(6)
+
+  session StreamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+}
+
+model ChatBan {
+  id             String    @id
+  channelId      String
+  userId         String
+  bannedByUserId String
+  reason         String?
+  expiresAt      DateTime? @db.Timestamptz(6)
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@unique([channelId, userId])
+}
+
+enum ChatMessageType {
+  USER
+  SYSTEM
+  BID_ANNOUNCE
+  SALE_ANNOUNCE
+}

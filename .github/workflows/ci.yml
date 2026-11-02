@@ -1,0 +1,53 @@
+# CI for the backend (Phase 4a, engineering backlog): the four gates the repo already ships as
+# scripts, run for real on every push to main and every PR. Nothing exotic — no containers, no
+# secrets: the unit suite is pure domain rules, and the gates are static. prisma generate must
+# resolve the schema's env() placeholders even though it never opens a connection, so the
+# example file stands in as the dummy env.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: typecheck + lint + boundaries + unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      # pnpm version comes from package.json's packageManager field (pnpm@9.12.0).
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Provision dummy env for prisma generate
+        run: cp .env.example .env
+
+      - name: Generate Prisma client
+        run: pnpm run db:generate
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Lint (max-warnings 0)
+        run: pnpm run lint
+
+      - name: Module boundaries
+        run: pnpm run boundaries
+
+      - name: Unit tests
+        run: pnpm run test

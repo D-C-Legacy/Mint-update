@@ -1,0 +1,28 @@
+// Buyer rating of a completed purchase. Not in 03-DATA-MODEL.md or 05-API-SPEC.md — Phase 8
+// scoping (13 Oct 2026) confirmed no model for reviews exists anywhere. Added on the user's
+// instruction, same "user-directed addition" precedent as preferences/addresses/change-password.
+// One review per order (not a free-floating seller rating): ties the review to a specific,
+// already-paid-for purchase, so it can only be left once that order is DELIVERED/COMPLETED.
+model Review {
+  id          String  @id
+  orderId     String  @unique
+  sellerId    String
+  buyerUserId String
+  rating      Int // 1-5, enforced by Zod at the boundary, not the DB
+  body        String?
+
+  status ReviewStatus @default(VISIBLE)
+
+  sellerResponseBody String?
+  sellerRespondedAt  DateTime? @db.Timestamptz(6)
+
+  hiddenByUserId String?
+  hiddenAt       DateTime? @db.Timestamptz(6)
+  hiddenReason   String?
+
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  @@index([sellerId, status, createdAt])
+  @@index([buyerUserId])
+}

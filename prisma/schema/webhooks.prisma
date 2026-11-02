@@ -1,0 +1,12 @@
+model WebhookEvent {
+  id              String    @id
+  provider        String
+  providerEventId String    @unique
+  type            String
+  payload         Json
+  processedAt     DateTime? @db.Timestamptz(6)
+  error           String?
+  receivedAt      DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@index([provider, type, processedAt])
+}

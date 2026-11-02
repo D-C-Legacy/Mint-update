@@ -1,0 +1,106 @@
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: live_auction
+    ports:
+      - '127.0.0.1:5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    ports:
+      - '127.0.0.1:6379:6379'
+
+  # Phase 4b: nightly pg_dump of the live database straight to S3 (BACKUP_CRON, UTC), with a
+  # `restore` mode that drills restoring into a throwaway database. DB creds mirror the postgres
+  # service above on purpose; S3 target comes from .env (BACKUP_S3_BUCKET) reusing the same AWS
+  # credentials the storage config uses.
+  db-backup:
+    build:
+      context: .
+      dockerfile: ops/backup/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: '5432'
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: live_auction
+      BACKUP_S3_BUCKET: ${BACKUP_S3_BUCKET:-}
+      BACKUP_S3_PREFIX: ${BACKUP_S3_PREFIX:-db-backups}
+      BACKUP_CRON: ${BACKUP_CRON:-0 3 * * *}
+    depends_on:
+      - postgres
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: api
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '3000:3000'
+    depends_on:
+      - postgres
+      - redis
+
+  realtime:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: realtime
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - '3001:3001'
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: worker
+    restart: unless-stopped
+    env_file: .env
+    depends_on:
+      - postgres
+      - redis
+
+  admin-portal:
+    build:
+      context: ./admin-portal
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: https://api.swishfy.com/v1
+        VITE_REALTIME_URL: https://api.swishfy.com
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    depends_on:
+      - api
+
+  app-web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        EXPO_PUBLIC_API_URL: https://api.swishfy.com/v1
+        EXPO_PUBLIC_REALTIME_URL: https://api.swishfy.com
+    restart: unless-stopped
+    ports:
+      - '8082:80'
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:

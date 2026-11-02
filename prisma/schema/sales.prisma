@@ -1,0 +1,72 @@
+model Sale {
+  id        String     @id
+  sessionId String
+  sellerId  String
+  productId String
+  mode      SaleMode
+  status    SaleStatus @default(OPEN)
+  currency  String     @db.Char(3)
+
+  // auction fields
+  startAmount    BigInt?
+  currentAmount  BigInt?
+  currentBidId   String?
+  endsAt         DateTime? @db.Timestamptz(6)
+  extensionCount Int       @default(0)
+
+  // buy now fields
+  price    BigInt?
+  quantity Int     @default(1)
+
+  // resolution
+  winnerUserId String?
+  finalAmount  BigInt?
+  resolvedAt   DateTime? @db.Timestamptz(6)
+  orderId      String?   @unique
+
+  version   Int      @default(0) // optimistic concurrency guard
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @db.Timestamptz(6)
+
+  session   StreamSession    @relation(fields: [sessionId], references: [id])
+  bids      Bid[]
+  offers    Offer[]
+  queueItem StreamQueueItem?
+
+  @@index([sessionId, status])
+  @@index([status, endsAt]) // auction close sweeper
+  @@index([sellerId, resolvedAt])
+}
+
+model Bid {
+  id        String    @id
+  saleId    String
+  userId    String
+  amount    BigInt
+  status    BidStatus @default(ACCEPTED)
+  sequence  Int // strictly increasing per sale
+  createdAt DateTime  @default(now()) @db.Timestamptz(6)
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@unique([saleId, sequence])
+  @@index([saleId, amount])
+  @@index([userId, createdAt])
+}
+
+model Offer {
+  id            String      @id
+  saleId        String
+  userId        String
+  amount        BigInt
+  status        OfferStatus @default(PENDING)
+  counterAmount BigInt?
+  respondedAt   DateTime?   @db.Timestamptz(6)
+  expiresAt     DateTime    @db.Timestamptz(6)
+  createdAt     DateTime    @default(now()) @db.Timestamptz(6)
+
+  sale Sale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+
+  @@index([saleId, status])
+  @@index([userId, status])
+}

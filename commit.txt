@@ -1,0 +1,8 @@
+﻿feat(round6): notification deep-link ref + swipe-to-delete + settings restructure + pill removal + inbox/web fixes
+Push listener with basic mapping (#1)
+In-app notifs same mapping (#2)
+Swipe-to-delete (#3)
+Notifications split + back-arrow removed (#4/#5)
+Preferences consolidated + desktop split removed (#6)
+Remove oval-pill stat displays (#7)
+Notification gap: backend event payload + frontend content carry optional ref

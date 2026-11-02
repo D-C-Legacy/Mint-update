@@ -1,0 +1,232 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  BUYER
+  SELLER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+enum DevicePlatform {
+  IOS
+  ANDROID
+  WEB
+}
+
+enum SellerType {
+  INDIVIDUAL
+  BUSINESS
+}
+
+enum SellerStatus {
+  DRAFT
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  SUSPENDED
+}
+
+enum ApplicationDecision {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum DocumentType {
+  GOVERNMENT_ID
+  PROOF_OF_ADDRESS
+  BUSINESS_REGISTRATION
+  TAX_DOCUMENT
+  OTHER
+}
+
+enum ProductCondition {
+  NEW
+  LIKE_NEW
+  USED
+  FOR_PARTS
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  SOLD
+  ARCHIVED
+}
+
+enum StreamStatus {
+  SCHEDULED
+  LIVE
+  ENDED
+  CANCELLED
+}
+
+// New with the live-streaming build-out, 14 Oct 2026 — no queue/ordering concept existed anywhere
+// in the docs before this (founder_requests.md §2 flagged this gap explicitly). PENDING: queued,
+// not shown yet. ACTIVE: the one item currently featured — at most one per session, enforced at
+// the application layer, not a DB constraint. DONE: sold, skipped, or superseded by a later item.
+enum QueueItemStatus {
+  PENDING
+  ACTIVE
+  DONE
+}
+
+enum SaleMode {
+  AUCTION
+  BUY_NOW
+  OFFER
+}
+
+enum SaleStatus {
+  OPEN
+  CLOSING
+  RESOLVED
+  CANCELLED
+  EXPIRED
+}
+
+enum BidStatus {
+  ACCEPTED
+  OUTBID
+  WINNING
+  REJECTED
+}
+
+enum OfferStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COUNTERED
+  EXPIRED
+  WITHDRAWN
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  SHIPPED
+  DELIVERED
+  COMPLETED
+  CANCELLED
+  REFUNDED
+  DISPUTED
+}
+
+enum DeliveryConfirmationSource {
+  CARRIER
+  BUYER
+  AUTO
+  ADMIN
+}
+
+enum PaymentStatus {
+  REQUIRES_PAYMENT
+  PROCESSING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  REFUNDED
+  PARTIALLY_REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  SUCCEEDED
+  FAILED
+}
+
+enum LedgerAccountType {
+  PLATFORM_CASH // money we hold in the bank
+  PLATFORM_REVENUE // commission earned
+  PROCESSOR_FEES // what the processor took
+  SELLER_PENDING // owed but not releasable
+  SELLER_AVAILABLE // owed and releasable
+  SELLER_PAID_OUT // already transferred
+  REFUNDS_PAYABLE
+}
+
+enum EntryDirection {
+  DEBIT
+  CREDIT
+}
+
+enum PayoutRunStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+  REVERSED
+  HELD
+}
+
+enum NotificationChannel {
+  PUSH
+  EMAIL
+}
+
+enum NotificationDeliveryStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+enum ReviewStatus {
+  VISIBLE
+  HIDDEN
+}
+
+enum ReportTargetType {
+  REVIEW
+  MESSAGE
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+enum SellerTeamRole {
+  OWNER
+  MANAGER
+  STAFF
+  VIEW_ONLY
+}
+
+enum SellerInvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+enum StreamModeratorRole {
+  MODERATOR
+}
+
+enum ChatTimeoutReason {
+  SPAM
+  HARASSMENT
+  INAPPROPRIATE
+  OTHER
+}

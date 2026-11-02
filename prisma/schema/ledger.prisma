@@ -1,0 +1,53 @@
+model LedgerAccount {
+  id        String            @id
+  type      LedgerAccountType
+  ownerId   String? // sellerId for seller accounts, null for platform
+  currency  String            @db.Char(3)
+  createdAt DateTime          @default(now()) @db.Timestamptz(6)
+
+  entries LedgerEntry[]
+
+  @@unique([type, ownerId, currency])
+  @@index([ownerId])
+}
+
+model LedgerTransaction {
+  id             String   @id
+  type           String // order.paid, order.delivered, payout.sent ...
+  idempotencyKey String   @unique // replay protection
+  referenceType  String // order, payout, refund
+  referenceId    String
+  description    String?
+  createdAt      DateTime @default(now()) @db.Timestamptz(6)
+
+  entries LedgerEntry[]
+
+  @@index([referenceType, referenceId])
+  @@index([createdAt])
+}
+
+model LedgerEntry {
+  id            String         @id
+  transactionId String
+  accountId     String
+  direction     EntryDirection
+  amount        BigInt // always positive, direction carries the sign
+  currency      String         @db.Char(3)
+  createdAt     DateTime       @default(now()) @db.Timestamptz(6)
+
+  transaction LedgerTransaction @relation(fields: [transactionId], references: [id])
+  account     LedgerAccount     @relation(fields: [accountId], references: [id])
+
+  @@index([accountId, createdAt])
+  @@index([transactionId])
+}
+
+model SellerBalance {
+  sellerId        String   @id // projection, rebuildable from entries
+  currency        String   @db.Char(3)
+  pendingAmount   BigInt   @default(0)
+  availableAmount BigInt   @default(0)
+  paidOutAmount   BigInt   @default(0)
+  lastEntryId     String? // watermark for rebuild
+  updatedAt       DateTime @updatedAt @db.Timestamptz(6)
+}

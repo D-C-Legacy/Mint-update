@@ -1,0 +1,108 @@
+model Seller {
+  id               String       @id
+  userId           String       @unique
+  type             SellerType
+  legalName        String
+  displayName      String
+  status           SellerStatus @default(DRAFT)
+  commissionBps    Int          @default(1000)
+  payoutHoldDays   Int          @default(0)
+  approvedAt       DateTime?    @db.Timestamptz(6)
+  approvedByUserId String?
+  suspendedAt      DateTime?    @db.Timestamptz(6)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime     @updatedAt @db.Timestamptz(6)
+
+  user        User               @relation(fields: [userId], references: [id])
+  application SellerApplication?
+  bankAccount SellerBankAccount?
+  channel     Channel?
+  teamMembers SellerTeamMember[]
+  invitations SellerInvitation[]
+
+  @@index([status])
+}
+
+model SellerApplication {
+  id               String              @id
+  sellerId         String              @unique
+  submittedAt      DateTime?           @db.Timestamptz(6)
+  reviewedAt       DateTime?           @db.Timestamptz(6)
+  reviewedByUserId String?
+  decision         ApplicationDecision @default(PENDING)
+  rejectionReason  String?
+  formData         Json
+  createdAt        DateTime            @default(now()) @db.Timestamptz(6)
+  updatedAt        DateTime            @updatedAt @db.Timestamptz(6)
+
+  seller    Seller           @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  documents SellerDocument[]
+
+  @@index([decision, submittedAt])
+}
+
+model SellerDocument {
+  id            String       @id
+  applicationId String
+  type          DocumentType
+  storageKey    String
+  fileName      String
+  mimeType      String
+  sizeBytes     Int
+  uploadedAt    DateTime     @default(now()) @db.Timestamptz(6)
+  reviewNote    String?
+
+  application SellerApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+  @@index([applicationId])
+}
+
+model SellerBankAccount {
+  id            String    @id
+  sellerId      String    @unique
+  accountHolder String
+  last4         String    @db.Char(4)
+  encryptedRef  String
+  bankName      String?
+  country       String    @db.Char(2)
+  currency      String    @db.Char(3)
+  verifiedAt    DateTime? @db.Timestamptz(6)
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6)
+
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+}
+
+model SellerTeamMember {
+  id        String         @id
+  sellerId  String
+  userId    String
+  role      SellerTeamRole @default(STAFF)
+  createdAt DateTime       @default(now()) @db.Timestamptz(6)
+  updatedAt DateTime       @updatedAt @db.Timestamptz(6)
+
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([sellerId, userId])
+  @@index([sellerId])
+  @@index([userId])
+}
+
+model SellerInvitation {
+  id         String                 @id
+  sellerId   String
+  email      String
+  role       SellerTeamRole
+  token      String                 @unique
+  status     SellerInvitationStatus @default(PENDING)
+  expiresAt  DateTime               @db.Timestamptz(6)
+  acceptedAt DateTime?              @db.Timestamptz(6)
+  createdAt  DateTime               @default(now()) @db.Timestamptz(6)
+  updatedAt  DateTime               @updatedAt @db.Timestamptz(6)
+
+  seller Seller @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+
+  @@index([sellerId, status])
+  @@index([email])
+  @@index([token])
+}

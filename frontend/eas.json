@@ -1,0 +1,17 @@
+{
+  "build": {
+    "production": {
+      // EAS builds run on Expo's servers, where the local, gitignored .env does not exist.
+      // Without these the baked-in fallback is http://localhost:3000/v1 and a TestFlight
+      // build would look dead to testers. Values match frontend/.env (the live stack).
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://api.swishfy.com/v1",
+        "EXPO_PUBLIC_REALTIME_URL": "wss://api.swishfy.com",
+        "EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID": "1087584663857-a02v8bjm3hc7qneaplqhbmmjsp72hvs7.apps.googleusercontent.com"
+      }
+    }
+  },
+  "submit": {
+    "production": {}
+  }
+}

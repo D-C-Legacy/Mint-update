@@ -1,0 +1,93 @@
+model StreamSession {
+  id               String       @id
+  channelId        String
+  title            String
+  status           StreamStatus @default(SCHEDULED)
+  providerRoomId   String?      @unique
+  scheduledFor     DateTime?    @db.Timestamptz(6)
+  startedAt        DateTime?    @db.Timestamptz(6)
+  endedAt          DateTime?    @db.Timestamptz(6)
+  peakViewers      Int          @default(0)
+  itemsSold        Int          @default(0)
+  grossAmount      BigInt       @default(0)
+  thumbnailKey     String?
+  // Per-show toggle (founder-feedback round5 §5, 26 Oct 2026) — resets to false every new session,
+  // not a seller-level default; "pause the queue" is just flipping this back off, not a separate
+  // field, since there's nothing else for auto-advance to be paused independently of.
+  autoQueueEnabled Boolean      @default(false)
+  createdAt        DateTime     @default(now()) @db.Timestamptz(6)
+
+  channel      Channel           @relation(fields: [channelId], references: [id])
+  chatMessages ChatMessage[]
+  sales        Sale[]
+  queueItems   StreamQueueItem[]
+  moderators   StreamModerator[]
+  chatTimeouts ChatTimeout[]
+
+  @@index([status, startedAt])
+  @@index([channelId, startedAt])
+}
+
+// The stream's lineup — what's queued to show, what's showing now, what's done. New with the
+// live-streaming build-out, 14 Oct 2026 (founder_requests.md §2); `position` is a plain sort key
+// re-written on reorder, not a linked list — simplest thing that supports both live reordering and
+// mid-stream inserts (founder decision, same date: last-minute additions are in scope).
+model StreamQueueItem {
+  id          String          @id
+  sessionId   String
+  productId   String
+  position    Int
+  mode        SaleMode
+  // The price/starting-bid/quantity to feature this item at, captured up front when it's added to
+  // the queue (founder-feedback round5 §5, 26 Oct 2026) — previously these were only ever typed in
+  // by hand at feature-time, which works fine for a seller manually tapping "Feature" but leaves
+  // nothing for an automatic advance to use. Mode-conditional, mirroring FeatureQueueItemCommand's
+  // own discriminated union: AUCTION uses startAmount, BUY_NOW uses price+quantity, OFFER uses
+  // neither. All nullable because rows created before this migration have none of these set — the
+  // auto-advance job skips any item missing what its own mode needs rather than inventing a number.
+  startAmount BigInt?
+  price       BigInt?
+  quantity    Int?
+  status      QueueItemStatus @default(PENDING)
+  // Set once this item is featured and a real Sale opens for it. Nullable because most queue rows
+  // spend their life PENDING with no sale yet.
+  saleId      String?         @unique
+  createdAt   DateTime        @default(now()) @db.Timestamptz(6)
+  updatedAt   DateTime        @updatedAt @db.Timestamptz(6)
+
+  session StreamSession @relation(fields: [sessionId], references: [id])
+  sale    Sale?         @relation(fields: [saleId], references: [id])
+
+  @@index([sessionId, position])
+  @@index([sessionId, status])
+}
+
+model StreamModerator {
+  id        String              @id
+  sessionId String
+  userId    String
+  addedBy   String
+  role      StreamModeratorRole @default(MODERATOR)
+  createdAt DateTime            @default(now()) @db.Timestamptz(6)
+
+  session StreamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, userId])
+  @@index([sessionId])
+  @@index([userId])
+}
+
+model ChatTimeout {
+  id          String            @id
+  sessionId   String
+  userId      String
+  moderatorId String
+  expiresAt   DateTime          @db.Timestamptz(6)
+  reason      ChatTimeoutReason @default(OTHER)
+  createdAt   DateTime          @default(now()) @db.Timestamptz(6)
+
+  session StreamSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, userId])
+  @@index([sessionId, expiresAt])
+}

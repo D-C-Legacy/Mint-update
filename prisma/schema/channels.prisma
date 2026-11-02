@@ -1,0 +1,26 @@
+model Channel {
+  id            String   @id
+  sellerId      String   @unique
+  slug          String   @unique
+  name          String
+  bio           String?
+  bannerKey     String?
+  followerCount Int      @default(0)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now()) @db.Timestamptz(6)
+
+  seller  Seller          @relation(fields: [sellerId], references: [id])
+  follows ChannelFollow[]
+  streams StreamSession[]
+}
+
+model ChannelFollow {
+  channelId String
+  userId    String
+  createdAt DateTime @default(now()) @db.Timestamptz(6)
+
+  channel Channel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+
+  @@id([channelId, userId])
+  @@index([userId])
+}

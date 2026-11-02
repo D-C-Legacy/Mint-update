@@ -1,0 +1,29 @@
+model AuditLog {
+  id          String   @id
+  actorUserId String
+  action      String
+  targetType  String
+  targetId    String
+  before      Json?
+  after       Json?
+  reason      String?
+  ipAddress   String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([actorUserId, createdAt])
+  @@index([targetType, targetId])
+}
+
+model IdempotencyRecord {
+  key          String    @id
+  userId       String?
+  endpoint     String
+  requestHash  String
+  responseBody Json?
+  statusCode   Int?
+  lockedAt     DateTime? @db.Timestamptz(6)
+  completedAt  DateTime? @db.Timestamptz(6)
+  expiresAt    DateTime  @db.Timestamptz(6)
+
+  @@index([expiresAt])
+}

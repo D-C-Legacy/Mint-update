@@ -1,0 +1,26 @@
+// No doc anywhere (03-DATA-MODEL.md, 05-API-SPEC.md) defines a notification/delivery-record
+// table — 00-PRD.md only mentions "push and email notifications" as a feature bullet, with zero
+// schema detail, and P8's own section in 07-IMPLEMENTATION-PLAN.md has no Context line at all
+// (every other phase has one). Built now, flagged, same "zero-ambiguity, this ticket's own
+// deliverable genuinely needs it" precedent as AuditLog (P2-06) / WebhookEvent (P4-03).
+model NotificationDelivery {
+  id                String                     @id
+  userId            String
+  channel           NotificationChannel
+  templateKey       String
+  recipient         String // push token or email address actually used
+  content           Json // the rendered content actually sent (title/body or subject/body)
+  status            NotificationDeliveryStatus @default(PENDING)
+  providerMessageId String?
+  failureReason     String?
+  sentAt            DateTime?                  @db.Timestamptz(6)
+  readAt            DateTime?                  @db.Timestamptz(6)
+  // User-initiated inbox delete (Phase 4, user decision 2026-10: soft delete — the EMAIL send
+  // record stays as the notification system's audit row; the user-facing list/count just filter
+  // deletedAt: null out). Nullable, no index: the existing @@index([userId, createdAt]) already
+  // serves the inbox query's shape.
+  deletedAt         DateTime?                  @db.Timestamptz(6)
+  createdAt         DateTime                   @default(now()) @db.Timestamptz(6)
+
+  @@index([userId, createdAt])
+}
